@@ -168,7 +168,8 @@ export default function Home() {
         </div>
       )}
 
-      <p className="note">
+   <p className="footer-credit">Published by Sammy Funds</p>
+<p className="note">
         Matching runs on public search results, so coverage depends on what's indexed \u2014
         expect partial, not total, hit rates. Requires a <code>SERPER_API_KEY</code> set in
         your hosting environment.
