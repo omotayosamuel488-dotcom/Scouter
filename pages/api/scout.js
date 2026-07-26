@@ -1,16 +1,13 @@
 import { verifyShopify } from "../../lib/verifyShopify";
 
-// Keep batches small - serverless functions on Vercel's free tier
-// time out around 10s, and each email needs a search + a fetch.
 const MAX_EMAILS_PER_REQUEST = 15;
 
-function extractDomainsFromSerp(serpJson) {
+function extractDomainsFromSerp(serperJson) {
   const domains = new Set();
-  const results = serpJson.organic_results || [];
+  const results = serperJson.organic || [];
   for (const r of results) {
     try {
       const host = new URL(r.link).hostname.replace(/^www\./, "");
-      // Skip obvious non-store domains (social, marketplaces, aggregators)
       if (
         !/facebook\.com|instagram\.com|linkedin\.com|twitter\.com|x\.com|youtube\.com|pinterest\.com|amazon\.com|ebay\.com|google\.com/.test(
           host
@@ -22,7 +19,7 @@ function extractDomainsFromSerp(serpJson) {
       // skip malformed URLs
     }
   }
-  return Array.from(domains).slice(0, 3); // check top 3 candidates per email
+  return Array.from(domains).slice(0, 3);
 }
 
 export default async function handler(req, res) {
@@ -35,11 +32,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Provide a non-empty array of emails" });
   }
 
-  const apiKey = process.env.SERPAPI_KEY;
+  const apiKey = process.env.SERPER_API_KEY;
   if (!apiKey) {
     return res.status(500).json({
       error:
-        "SERPAPI_KEY is not set. Add it in your hosting provider's environment variables (see README).",
+        "SERPER_API_KEY is not set. Add it in your hosting provider's environment variables (see README).",
     });
   }
 
@@ -54,12 +51,16 @@ export default async function handler(req, res) {
     }
 
     try {
-      const searchUrl = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(
-        `"${cleanEmail}"`
-      )}&api_key=${apiKey}`;
-      const serpRes = await fetch(searchUrl);
-      const serpJson = await serpRes.json();
-      const candidates = extractDomainsFromSerp(serpJson);
+      const serperRes = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: {
+          "X-API-KEY": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ q: `"${cleanEmail}"` }),
+      });
+      const serperJson = await serperRes.json();
+      const candidates = extractDomainsFromSerp(serperJson);
 
       if (candidates.length === 0) {
         results.push({ email: cleanEmail, status: "no_match", store: null });
@@ -97,4 +98,4 @@ export default async function handler(req, res) {
     processed: batch.length,
     remaining: emails.length - batch.length,
   });
-}
+            }
