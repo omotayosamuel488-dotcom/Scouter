@@ -249,4 +249,12 @@ button.run:hover:not(:disabled) {
   background: var(--ink-raised);
   padding: 1px 6px;
   border-radius: 4px;
-    }
+}
+.footer-credit {
+  margin-top: 40px;
+  text-align: center;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--paper-dim);
+  letter-spacing: 0.05em;
+}
