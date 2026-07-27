@@ -258,3 +258,40 @@ button.run:hover:not(:disabled) {
   color: var(--paper-dim);
   letter-spacing: 0.05em;
 }
+.paste-box {
+  width: 100%;
+  min-height: 90px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--ink-raised);
+  color: var(--paper);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  resize: vertical;
+  outline: none;
+}
+
+.paste-box:focus {
+  border-color: var(--amber);
+}
+
+.paste-box::placeholder {
+  color: var(--paper-dim);
+}
+
+.or-divider {
+  text-align: center;
+  color: var(--paper-dim);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 16px 0;
+}
+
+.clear-link {
+  color: var(--amber);
+  cursor: pointer;
+  text-decoration: underline;
+}
