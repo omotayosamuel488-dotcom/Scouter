@@ -11,6 +11,7 @@ function extractEmails(text) {
 
 export default function Home() {
   const [fileName, setFileName] = useState(null);
+  const [pastedText, setPastedText] = useState("");
   const [emails, setEmails] = useState([]);
   const [results, setResults] = useState([]);
   const [running, setRunning] = useState(false);
@@ -25,16 +26,35 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target.result;
+      let extracted;
       if (file.name.endsWith(".csv")) {
         const parsed = Papa.parse(text);
         const flat = parsed.data.flat().join(" ");
-        setEmails(extractEmails(flat));
+        extracted = extractEmails(flat);
       } else {
-        setEmails(extractEmails(text));
+        extracted = extractEmails(text);
       }
+      setEmails((prev) => Array.from(new Set([...prev, ...extracted])));
     };
     reader.readAsText(file);
   }, []);
+
+  const handlePaste = (text) => {
+    setPastedText(text);
+    setResults([]);
+    const extracted = extractEmails(text);
+    setEmails((prev) => {
+      const fileDerived = fileName ? prev : [];
+      return Array.from(new Set([...fileDerived, ...extracted]));
+    });
+  };
+
+  const clearAll = () => {
+    setFileName(null);
+    setPastedText("");
+    setEmails([]);
+    setResults([]);
+  };
 
   const runScout = async () => {
     if (emails.length === 0) return;
@@ -103,9 +123,18 @@ export default function Home() {
       <p className="eyebrow">Scouter // lead recon</p>
       <h1>Find the store behind the inbox.</h1>
       <p className="sub">
-        Upload a list of emails. Scouter searches each one, then checks whether it
-        leads back to a live Shopify store — verified, not guessed.
+        Upload a list of emails, or paste one straight in. Scouter searches each one, then
+        checks whether it leads back to a live Shopify store — verified, not guessed.
       </p>
+
+      <textarea
+        className="paste-box"
+        placeholder="paste one email, or a list — one per line or separated by commas"
+        value={pastedText}
+        onChange={(e) => handlePaste(e.target.value)}
+      />
+
+      <div className="or-divider">or</div>
 
       <div
         className={`dropzone ${dragActive ? "active" : ""} ${running ? "scanning" : ""}`}
@@ -132,10 +161,17 @@ export default function Home() {
         </div>
         {fileName && (
           <div className="filename">
-            {fileName} \u2014 {emails.length} email{emails.length === 1 ? "" : "s"} detected
+            {fileName} \u2014 file loaded
           </div>
         )}
       </div>
+
+      {emails.length > 0 && (
+        <div className="status-line">
+          {emails.length} email{emails.length === 1 ? "" : "s"} ready \u2014{" "}
+          <span className="clear-link" onClick={clearAll}>clear</span>
+        </div>
+      )}
 
       <button className="run" disabled={emails.length === 0 || running} onClick={runScout}>
         {running ? "scanning\u2026" : `scout ${emails.length || ""} email${emails.length === 1 ? "" : "s"}`}
@@ -168,12 +204,13 @@ export default function Home() {
         </div>
       )}
 
-   <p className="footer-credit">Published by Sammy Funds</p>
-<p className="note">
+      <p className="footer-credit">Published by Sammy Funds</p>
+
+      <p className="note">
         Matching runs on public search results, so coverage depends on what's indexed \u2014
         expect partial, not total, hit rates. Requires a <code>SERPER_API_KEY</code> set in
         your hosting environment.
       </p>
     </div>
   );
-      }
+}
