@@ -1,4 +1,5 @@
 import { verifyShopify } from "../../lib/verifyShopify";
+import { redis } from "../../lib/redis";
 
 const MAX_EMAILS_PER_REQUEST = 15;
 
@@ -33,12 +34,6 @@ export default async function handler(req, res) {
   }
 
   const apiKey = process.env.SERPER_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({
-      error:
-        "SERPER_API_KEY is not set. Add it in your hosting provider's environment variables (see README).",
-    });
-  }
 
   const batch = emails.slice(0, MAX_EMAILS_PER_REQUEST);
   const results = [];
@@ -47,6 +42,30 @@ export default async function handler(req, res) {
     const cleanEmail = String(email).trim();
     if (!cleanEmail || !cleanEmail.includes("@")) {
       results.push({ email: cleanEmail, status: "skipped", reason: "not a valid email" });
+      continue;
+    }
+    const lowerEmail = cleanEmail.toLowerCase();
+
+    // Step 1: check our own database first (instant)
+    try {
+      const cached = await redis.get(`email:${lowerEmail}`);
+      if (cached) {
+        const parsed = typeof cached === "string" ? JSON.parse(cached) : cached;
+        results.push({
+          email: cleanEmail,
+          status: "found",
+          source: "database",
+          store: { domain: parsed.domain, storeName: parsed.storeName, productCount: null },
+        });
+        continue;
+      }
+    } catch {
+      // database lookup failed, fall through to search
+    }
+
+    // Step 2: not in database, fall back to Google-style search via Serper
+    if (!apiKey) {
+      results.push({ email: cleanEmail, status: "no_match", store: null });
       continue;
     }
 
@@ -79,6 +98,7 @@ export default async function handler(req, res) {
       results.push({
         email: cleanEmail,
         status: matched ? "found" : "no_shopify_match",
+        source: matched ? "search" : undefined,
         store: matched
           ? {
               domain: matched.domain,
@@ -98,4 +118,4 @@ export default async function handler(req, res) {
     processed: batch.length,
     remaining: emails.length - batch.length,
   });
-            }
+}
